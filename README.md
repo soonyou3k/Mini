@@ -7,7 +7,18 @@
 
 ## 난세무쌍 (횡스크롤 액션)
 
-`action/index.html`을 브라우저로 열면 됩니다.
+### 아이폰·아이패드에 앱으로 설치하기
+
+1. Safari로 **https://soonyou3k.github.io/Mini/** 를 엽니다.
+2. 아래쪽 **공유** 버튼 → **홈 화면에 추가**를 누릅니다.
+3. 홈 화면의 **난세무쌍** 아이콘으로 실행하면 주소창 없이 전체 화면으로 열리고, 한 번 연 뒤에는 인터넷 없이도 플레이할 수 있습니다.
+
+가로로 눕히면 화면이 가장 넓게 보입니다. 방향 패드는 손가락을 떼지 않고 미끄러뜨려도 방향이 바뀝니다.
+
+`main` 또는 개발 브랜치에 푸시하면 `.github/workflows/pages.yml`이 자동으로 배포합니다. 설치한 앱은 다음 실행 때 새 버전을 받습니다.
+(처음 한 번은 저장소 **Settings → Pages → Source**를 **GitHub Actions**로 설정해야 합니다.)
+
+PC에서는 `action/index.html`을 브라우저로 열어도 됩니다.
 
 - **직업**: 관우(검호·근접), 황충(신궁·원거리), 제갈량(책사·마법)
 - **조작**: ←→ 이동, Space/Alt 점프(↓+점프로 발판 아래로), Z/Ctrl 공격, A·S·D 기술, ↑↓ 밧줄·포탈·대화, 1·2·3 물약. 휴대폰에서는 화면 버튼으로 조작합니다.
@@ -21,6 +32,8 @@
 | `action/js/game.js` | 물리, 전투, 몬스터·보스 AI, 저장 |
 | `action/js/draw.js` | 캔버스 그리기 |
 | `action/js/ui.js` | HUD, 대화창, 상점, 터치 조작 |
+| `action/sw.js`, `action/manifest.webmanifest` | 홈 화면 앱 설치·오프라인 실행 |
+| `scripts/build-pages.sh` | GitHub Pages용 사이트 빌드 (`/` 난세무쌍, `/classic/` 턴제) |
 
 ## 난세영웅전 (턴제)
 

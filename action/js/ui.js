@@ -12,7 +12,7 @@ function resize() {
   const box = $('#stage').getBoundingClientRect();
   const aspect = box.width / Math.max(1, box.height);
   G.vh = VIEW_H;
-  G.vw = Math.round(clamp(VIEW_H * aspect, 480, 1280));
+  G.vw = Math.round(clamp(VIEW_H * aspect, 480, 1440));
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   // 화면 비율이 범위를 벗어나면 가운데 맞춤으로 여백을 둔다
   const cssScale = Math.min(box.width / G.vw, box.height / G.vh);
@@ -142,9 +142,16 @@ const UI = {
           <button class="btn primary" data-ui="newgame" data-focus>새로 시작<small>무장을 골라 시작</small></button>
           <button class="btn" data-ui="continue" ${saved ? '' : 'disabled'}>이어하기<small>${esc(cont)}</small></button>
         </div>
+        ${UI.installHtml()}
         ${UI.controlsHtml()}
       </div>`;
     overlay.hidden = false;
+  },
+  installHtml() {
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone = navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+    if (!ios || standalone || location.protocol !== 'https:') return '';
+    return `<p class="install">앱으로 설치하기: Safari 아래쪽 <b>공유</b> 버튼 → <b>홈 화면에 추가</b>. 전체 화면으로 실행되고 인터넷이 없어도 플레이할 수 있습니다.</p>`;
   },
   controlsHtml() {
     return `<dl class="keys">
@@ -266,7 +273,7 @@ const held = new Map(); // pointerId → key
 function bindHold(root) {
   root.addEventListener('pointerdown', e => {
     const b = e.target.closest('[data-key]');
-    if (!b) return;
+    if (!b || b.closest('[data-dpad]')) return;
     e.preventDefault();
     held.set(e.pointerId, b.dataset.key);
     press(b.dataset.key);
@@ -281,6 +288,45 @@ window.addEventListener('pointerup', releasePointer);
 window.addEventListener('pointercancel', releasePointer);
 bindHold($('#touch'));
 bindHold($('#h-slots'));
+
+// 방향 패드: 손가락을 떼지 않고 미끄러뜨려도 방향이 바뀐다
+const dpad = $('[data-dpad]');
+const dpadKeys = ['left', 'right', 'up', 'down'];
+let dpadPointer = null;
+function dpadUpdate(e) {
+  const r = dpad.getBoundingClientRect();
+  const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  const dead = r.width * .14;
+  const want = new Set();
+  if (dx < -dead) want.add('left');
+  if (dx > dead) want.add('right');
+  if (dy < -dead * 1.6 && Math.abs(dy) > Math.abs(dx) * .6) want.add('up');
+  if (dy > dead * 1.6 && Math.abs(dy) > Math.abs(dx) * .6) want.add('down');
+  for (const k of dpadKeys) {
+    if (want.has(k)) press(k); else release(k);
+    dpad.querySelector(`[data-key="${k}"]`).classList.toggle('held', want.has(k));
+  }
+}
+function dpadEnd(e) {
+  if (e.pointerId !== dpadPointer) return;
+  dpadPointer = null;
+  for (const k of dpadKeys) { release(k); dpad.querySelector(`[data-key="${k}"]`).classList.remove('held'); }
+}
+dpad.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  dpadPointer = e.pointerId;
+  dpad.setPointerCapture?.(e.pointerId);
+  dpadUpdate(e);
+});
+dpad.addEventListener('pointermove', e => { if (e.pointerId === dpadPointer) dpadUpdate(e); });
+dpad.addEventListener('pointerup', dpadEnd);
+dpad.addEventListener('pointercancel', dpadEnd);
+dpad.addEventListener('lostpointercapture', dpadEnd);
+
+// 아이폰: 핀치 확대, 두 번 탭 확대, 길게 눌러 뜨는 메뉴를 막는다
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault());
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 || G.running) e.preventDefault(); }, { passive: false });
 document.addEventListener('contextmenu', e => { if (e.target.closest('#touch')) e.preventDefault(); });
 
 // ── 루프 ───────────────────────────────────────────────
@@ -312,4 +358,9 @@ function drawIdle() {
 
 resize();
 UI.title();
+
+// 오프라인 실행 (https로 배포된 경우에만)
+if ('serviceWorker' in navigator && location.protocol === 'https:' && !location.hostname.endsWith('claude.ai')) {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* 지원하지 않는 환경 */ });
+}
 requestAnimationFrame(frame);
